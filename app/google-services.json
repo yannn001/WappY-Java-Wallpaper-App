@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "266136875493",
+    "firebase_url": "https://wap-1-a9cc0-default-rtdb.firebaseio.com",
+    "project_id": "wap-1-a9cc0",
+    "storage_bucket": "wap-1-a9cc0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:266136875493:android:a6480aaf06028bbd91bf0c",
+        "android_client_info": {
+          "package_name": "com.yanciar.wap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5mBEcXUXBssyFaEU0qxwKNUfwTu_RE1Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
