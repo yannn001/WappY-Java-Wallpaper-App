@@ -1,0 +1,32 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="280dp"
+        android:layout_height="380dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="130dp"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/categoryImageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_free" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/categoryNameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Category Name"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="530dp"
+        android:textColor="#000000"
+        android:textSize="24sp" />
+
+</FrameLayout>
