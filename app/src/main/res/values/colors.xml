@@ -25,9 +25,6 @@
     <color name="dark_overlay">#14000000</color>
 
     <color name="image_overlay">#05000000</color>
-    <color name="minimal_dialog_text_color">#FFFFFF</color>
-    <color name="minimal_dialog_positive_button_color">#FFC107</color>
-    <color name="minimal_dialog_negative_button_color">#212121</color>
-    <color name="minimal_dialog_background_color">#212121</color>
+
 
 </resources>

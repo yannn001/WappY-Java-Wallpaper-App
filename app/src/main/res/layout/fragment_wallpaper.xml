@@ -47,6 +47,7 @@
                     android:textColor="@color/black"/>
 
                 <ImageButton
+                    android:id="@+id/search_btn"
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:paddingEnd="8dp"

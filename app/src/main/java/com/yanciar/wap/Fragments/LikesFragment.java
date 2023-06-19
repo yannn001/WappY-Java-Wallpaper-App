@@ -112,8 +112,10 @@ public class LikesFragment extends Fragment {
                                             } else if (fileExtension.equalsIgnoreCase("png")) {
                                                 imageUrl += ".png";
                                             }
-
-                                            WallpaperItem wallpaperItem = new WallpaperItem(finalWallpaperId, imageUrl, isPremium, true);
+                                            String title = getTitleFromId(finalWallpaperId);
+                                            String keyword = documentSnapshot.getString("keyword");
+                                            String category = documentSnapshot.getString("category");
+                                            WallpaperItem wallpaperItem = new WallpaperItem(finalWallpaperId, imageUrl,title, isPremium, true, keyword, category);
                                             wallpaperItemList.add(wallpaperItem);
                                             wallpaperAdapter.notifyDataSetChanged();
                                         })
@@ -147,6 +149,11 @@ public class LikesFragment extends Fragment {
         if (swipeRefreshLayout != null) {
             swipeRefreshLayout.setRefreshing(false);
         }
+    }
+    private String getTitleFromId(String id) {
+        // Retrieve the title based on the id from your data source (e.g., Firestore, database)
+        // Implement your logic to get the title here
+        return "Title for " + id;
     }
 }
 

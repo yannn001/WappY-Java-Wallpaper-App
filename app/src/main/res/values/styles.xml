@@ -14,25 +14,9 @@
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.MaterialComponents.Light" />
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.MaterialComponents.Dark.ActionBar" />
 
-    <style name="MinimalDialogStyle" parent="Theme.MaterialComponents.Light.Dialog.Alert">
-        <!-- Customize the background color of the dialog -->
-        <item name="android:windowBackground">@drawable/minimal_dialog_background</item>
-        <!-- Customize the text appearance -->
-        <item name="android:textColor">@color/minimal_dialog_text_color</item>
-        <item name="android:textSize">16sp</item>
-        <!-- Customize the button appearance -->
-        <item name="buttonBarPositiveButtonStyle">@style/MinimalDialogPositiveButtonStyle</item>
-        <item name="buttonBarNegativeButtonStyle">@style/MinimalDialogNegativeButtonStyle</item>
+    <style name="MaterialAlertDialogStyle" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <!-- Add any custom styling attributes here -->
     </style>
 
-    <style name="MinimalDialogPositiveButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/minimal_dialog_positive_button_color</item>
-        <!-- Add any other customization you want for the positive button -->
-    </style>
-
-    <style name="MinimalDialogNegativeButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/minimal_dialog_negative_button_color</item>
-        <!-- Add any other customization you want for the negative button -->
-    </style>
 
 </resources>

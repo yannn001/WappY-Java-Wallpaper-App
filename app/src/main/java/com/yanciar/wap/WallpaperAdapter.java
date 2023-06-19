@@ -1,26 +1,27 @@
 package com.yanciar.wap;
 
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageButton;
-import android.widget.ImageView;
+        import android.content.Context;
+        import android.content.Intent;
+        import android.content.SharedPreferences;
+        import android.view.LayoutInflater;
+        import android.view.View;
+        import android.view.ViewGroup;
+        import android.widget.ImageButton;
+        import android.widget.ImageView;
 
 
-import androidx.annotation.NonNull;
+        import androidx.annotation.NonNull;
 
-import androidx.recyclerview.widget.RecyclerView;
+        import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
+        import com.bumptech.glide.Glide;
 
-import java.util.List;
+        import java.util.ArrayList;
+        import java.util.List;
 
 
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
+        import com.google.firebase.storage.FirebaseStorage;
+        import com.google.firebase.storage.StorageReference;
 
 
 
@@ -30,12 +31,12 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.Wall
     private FirebaseStorage storage;
     private StorageReference storageRef;
     private SharedPreferences favoritesPref;
-
-
+    private List<WallpaperItem> filteredWallpaperList;
 
     public WallpaperAdapter(List<WallpaperItem> wallpaperList, Context context) {
         this.wallpaperList = wallpaperList;
         this.context = context;
+        this.filteredWallpaperList = new ArrayList<>(wallpaperList);
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
         favoritesPref = context.getSharedPreferences("favorites", Context.MODE_PRIVATE);
@@ -48,29 +49,52 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.Wall
         return new WallpaperViewHolder(view);
     }
 
+    // Filter the wallpapers based on the search query
+    public void filter(String query) {
+        filteredWallpaperList.clear();
+
+        if (query.isEmpty()) {
+            filteredWallpaperList.addAll(wallpaperList); // If query is empty, show all wallpapers
+        } else {
+            query = query.toLowerCase();
+            for (WallpaperItem wallpaper : wallpaperList) {
+                if (wallpaper.getTitle().toLowerCase().contains(query)) {
+                    filteredWallpaperList.add(wallpaper);
+                }
+            }
+        }
+
+        setWallpapers(filteredWallpaperList); // Set the filtered wallpapers in the adapter
+    }
+
 
     @Override
     public void onBindViewHolder(@NonNull WallpaperViewHolder holder, int position) {
         WallpaperItem wallpaperItem = wallpaperList.get(position);
         String imageUrl = wallpaperItem.getImageUrl();
-        // Load the wallpaper image using Glide or any other image loading library
-        if (imageUrl != null && !imageUrl.isEmpty()){
-            StorageReference storageRef = FirebaseStorage.getInstance().getReference();
-        StorageReference imageRef = storageRef.child(wallpaperItem.getImageUrl());
-        // StorageReference imageRef = storage.getReferenceFromUrl("gs://wap-1-a9cc0.appspot.com/wallpapers/" + ".jpeg");
-        Glide.with(context)
-                .load(wallpaperItem.getImageUrl())  // Use the direct image URL
-                .centerCrop()
-                .into(holder.imageView);
 
-    }
+        // Load the wallpaper image using Glide or any other image loading library
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            Glide.with(context)
+                    .load(imageUrl)
+                    .centerCrop()
+                    .into(holder.imageView);
+        }
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Handle the click event here
+                // Create an array from the list of image URLs
+                List<String> imageUrlList = new ArrayList<>();
+                for (WallpaperItem item : wallpaperList) {
+                    imageUrlList.add(item.getImageUrl());
+                }
+                String[] imageUrlArray = imageUrlList.toArray(new String[0]);
+
+                // Start FullScreenImageActivity
                 Intent intent = new Intent(context, FullScreenImageActivity.class);
-                intent.putExtra("imageUrl", wallpaperItem.getImageUrl());
+                intent.putExtra("imageUrl", imageUrlArray);
+                intent.putExtra("currentPosition", holder.getAdapterPosition());
                 context.startActivity(intent);
             }
         });
@@ -140,4 +164,9 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.Wall
             favoriteIcon = itemView.findViewById(R.id.favorite_icon);
         }
     }
+    public void setWallpapers(List<WallpaperItem> wallpapers) {
+        this.wallpaperList = wallpapers;
+        notifyDataSetChanged();
+    }
+
 }

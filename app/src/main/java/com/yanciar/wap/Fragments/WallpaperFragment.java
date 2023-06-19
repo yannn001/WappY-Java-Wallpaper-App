@@ -1,9 +1,14 @@
 package com.yanciar.wap.Fragments;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -12,6 +17,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.google.firebase.firestore.CollectionReference;
@@ -21,9 +28,11 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.yanciar.wap.R;
+import com.yanciar.wap.SearchActivity;
 import com.yanciar.wap.WallpaperAdapter;
 import com.yanciar.wap.WallpaperItem;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +48,13 @@ public class WallpaperFragment extends Fragment {
     private CollectionReference wallpapersCollection;
     private RecyclerView recyclerView;
     private boolean isRefreshing;
+
+    private Context fragmentContext;
+
+    private ImageButton searchBtn;
+
+    private static final int SEARCH_ACTIVITY_REQUEST_CODE = 1;
+
 
     public WallpaperFragment() {
         // Required empty public constructor
@@ -58,6 +74,7 @@ public class WallpaperFragment extends Fragment {
         // Initialize views in the onCreateView method
         recyclerView = rootView.findViewById(R.id.recyclerView);
         swipeRefreshLayout = rootView.findViewById(R.id.swipe_refresh_layout);
+        searchBtn = rootView.findViewById(R.id.search_btn);
 
         recyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
         wallpaperItemList = new ArrayList<>();
@@ -66,6 +83,15 @@ public class WallpaperFragment extends Fragment {
 
         // Swipe Refresh Layout
         swipeRefreshLayout.setOnRefreshListener(this::refreshData);
+
+        searchBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getContext(), SearchActivity.class);
+                intent.putExtra("wallpapers", (Serializable) wallpaperItemList);
+                startActivity(intent);
+            }
+        });
 
         // Initialize Firebase Storage
         storage = FirebaseStorage.getInstance();
@@ -79,6 +105,18 @@ public class WallpaperFragment extends Fragment {
         loadData();
 
         return rootView;
+    }
+
+    private List<WallpaperItem> filterWallpapers(List<WallpaperItem> wallpapers, String query) {
+        List<WallpaperItem> filteredList = new ArrayList<>();
+
+        for (WallpaperItem wallpaper : wallpapers) {
+            if (wallpaper.getTitle().toLowerCase().contains(query.toLowerCase())) {
+                filteredList.add(wallpaper);
+            }
+        }
+
+        return filteredList;
     }
 
     private void loadData() {
@@ -97,12 +135,18 @@ public class WallpaperFragment extends Fragment {
                         item.getDownloadUrl().addOnSuccessListener(uri -> {
                             String imageUrl = uri.toString();
                             // You can set the premium flag based on your requirements
-                            boolean isFavorite = getFavoriteStatus(id);
+                            boolean isFavorite = getFavoriteStatus(id, fragmentContext);
+
 
                             getPremiumStatus(id, isPremium -> {
-                                WallpaperItem wallpaperItem = new WallpaperItem(id, imageUrl, isPremium, isFavorite);
-                                wallpaperItemList.add(wallpaperItem);
-                                wallpaperAdapter.notifyDataSetChanged();
+                                String title = getTitleFromId(id);
+                                getKeywordFromId(id, keyword -> {// Fetch the keyword for the wallpaper
+                                    getCategoryFromId(id, category -> {
+                                        WallpaperItem wallpaperItem = new WallpaperItem(id, imageUrl, title, isPremium, isFavorite, keyword, category);
+                                        wallpaperItemList.add(wallpaperItem);
+                                        wallpaperAdapter.notifyDataSetChanged();
+                                    });
+                                });
                             });
                         }).addOnFailureListener(e -> {
                             // Handle the failure to get the download URL
@@ -123,61 +167,94 @@ public class WallpaperFragment extends Fragment {
                 });
     }
 
-    private void refreshData() {
-        if (isRefreshing) {
-            return; // Already refreshing, ignore the request
-        }
 
-        swipeRefreshLayout.setRefreshing(true);
-        isRefreshing = true;
 
-        // Get a reference to the wallpapers folder in Firebase Storage
-        StorageReference wallpapersRef = FirebaseStorage.getInstance().getReference("wallpapers");
+    private void filter(String query) {
+        List<WallpaperItem> filteredList = filterWallpapers(wallpaperItemList, query);
+        wallpaperAdapter.setWallpapers(filteredList);
+    }
 
-        wallpapersRef.listAll()
-                .addOnSuccessListener(listResult -> {
-                    wallpaperItemList.clear();
-
-                    for (StorageReference item : listResult.getItems()) {
-                        String id = item.getName();
-                        // Use the getDownloadUrl() method to retrieve the download URL for the image
-                        item.getDownloadUrl().addOnSuccessListener(uri -> {
-                            String imageUrl = uri.toString();
-                            // You can set the premium flag based on your requirements
-                            boolean isFavorite = getFavoriteStatus(id);
-
-                            getPremiumStatus(id, isPremium -> {
-                                WallpaperItem wallpaperItem = new WallpaperItem(id, imageUrl, isPremium, isFavorite);
-                                wallpaperItemList.add(wallpaperItem);
-                                wallpaperAdapter.notifyDataSetChanged();
-                            });
-
-                        }).addOnFailureListener(e -> {
-                            // Handle the failure to get the download URL
-                        });
-                    }
-
-                    if (isFragmentAttached()) {
-                        if (swipeRefreshLayout != null) {
-                            swipeRefreshLayout.setRefreshing(false);
+    private void getCategoryFromId(String wallpaperId, CategoryFragment.CategoryListener Listener){
+        DocumentReference wallpaperDocument = wallpapersCollection.document(wallpaperId);
+        wallpaperDocument.get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String category = documentSnapshot.getString("category");
+                        if (category != null) {
+                            Listener.onCategoryRetrieved(category);
+                        } else {
+                            createCategory(wallpaperDocument, Listener);
                         }
+                    } else {
+                        createCategory(wallpaperDocument, Listener);
                     }
-                    isRefreshing = false;
                 })
                 .addOnFailureListener(e -> {
-                    if (isFragmentAttached()) {
-                        Toast.makeText(requireContext(), "Failed to refresh wallpapers", Toast.LENGTH_SHORT).show();
-                        if (swipeRefreshLayout != null) {
-                            swipeRefreshLayout.setRefreshing(false);
-                        }
-                    }
-                    isRefreshing = false;
+                    // Handle the failure to retrieve the keyword
+                    Listener.onCategoryRetrieved("");
                 });
     }
 
-    private boolean getFavoriteStatus(String wallpaperId) {
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("favorites", Context.MODE_PRIVATE);
+    private void createCategory(DocumentReference wallpaperDoc, CategoryFragment.CategoryListener Listener){
+        Map<String, Object> data = new HashMap<>();
+        data.put("category", "Abstract");
+        wallpaperDoc.set(data, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Listener.onCategoryRetrieved("Abstract");
+                })
+                .addOnFailureListener(e -> {
+                    // Handle the failure to create the document
+                    Listener.onCategoryRetrieved("");
+                });
+    }
+
+    private void getKeywordFromId(String wallpaperId, SearchActivity.KeywordListener listener) {
+        DocumentReference wallpaperDocument = wallpapersCollection.document(wallpaperId);
+        wallpaperDocument.get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String keyword = documentSnapshot.getString("keyword");
+                        if (keyword != null) {
+                            listener.onKeywordRetrieved(keyword);
+                        } else {
+                            createKeyword(wallpaperDocument, listener);
+                        }
+                    } else {
+                        createKeyword(wallpaperDocument, listener);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // Handle the failure to retrieve the keyword
+                    listener.onKeywordRetrieved("");
+                });
+    }
+
+    private void createKeyword(DocumentReference wallpaperDocument, SearchActivity.KeywordListener listener) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("keyword", "wallpaper");
+        wallpaperDocument.set(data, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    listener.onKeywordRetrieved("wallpaper");
+                })
+                .addOnFailureListener(e -> {
+                    // Handle the failure to create the document
+                    listener.onKeywordRetrieved("");
+                });
+    }
+
+
+
+
+
+    private void refreshData() {
+        isRefreshing = true;
+        loadData();
+    }
+
+    private boolean getFavoriteStatus(String wallpaperId, Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("favorites", Context.MODE_PRIVATE);
         return sharedPreferences.getBoolean(wallpaperId, false);
+
     }
 
     private void updatePremiumStatus(String wallpaperId, boolean isPremium) {
@@ -233,6 +310,18 @@ public class WallpaperFragment extends Fragment {
         super.onDestroyView();
         swipeRefreshLayout = null;
         recyclerView = null;
-
-        }
     }
+
+    private String getTitleFromId(String id) {
+        // Retrieve the title based on the id from your data source (e.g., Firestore, database)
+        // Implement your logic to get the title here
+        return "Title for " + id;
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        fragmentContext = context;
+    }
+
+}
